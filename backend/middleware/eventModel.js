@@ -17,3 +17,12 @@ export async function getEventsByUser(userId) {
   );
   return rows;
 }
+
+export async function updateEvent(eventId, userId) {
+  const [result] = await pool.query(
+    `UPDATE events SET title = ?, description = ?, date = ? WHERE id = ? AND user_id = ?`,
+    [title, description, date, eventId, userId]
+  );
+
+  return result.affectedRows > 0;
+}
