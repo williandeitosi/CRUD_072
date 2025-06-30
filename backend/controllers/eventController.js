@@ -20,3 +20,16 @@ export async function createEventHandler(req, res) {
     res.status(500).json({ message: "Error creating event" });
   }
 }
+
+export async function listAllEventsByUser(req, res) {
+  try {
+    const userId = req.user.id;
+    const allEvents = await getAllEventsByUser(userId);
+    if (!allEvents) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    res.status(200).json({ allEvents });
+  } catch (err) {
+    console.log(err);
+  }
+}
