@@ -1,10 +1,9 @@
-import { pool } from "../database/conecction";
+import { pool } from "../database/conecction.js";
 
 export async function createEvent(title, description, date, userId) {
   const [result] = await pool.query(
-    `INSERT INTO events (title, description, date, userId) VALUES (?,?,?,?)`[
-      (title, description, date, userId)
-    ]
+    `INSERT INTO events (title, description, date, user_id) VALUES (?,?,?,?)`,
+    [title, description, date, userId]
   );
 
   return result.insertId;
@@ -34,4 +33,13 @@ export async function deleteEvent(eventId, userId) {
   );
 
   return result.affectedRows > 0;
+}
+
+export async function getAllEventsByUser(userId) {
+  const [result] = await pool.query(
+    `SELECT * FROM events WHERE user_id = ? ORDER BY id ASC`,
+    [userId]
+  );
+
+  return result;
 }
