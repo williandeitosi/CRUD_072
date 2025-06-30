@@ -26,3 +26,12 @@ export async function updateEvent(eventId, userId) {
 
   return result.affectedRows > 0;
 }
+
+export async function deleteEvent(eventId, userId) {
+  const [result] = await pool.query(
+    `DELETE FROM events WHERE id = ? AND user_id = ?`,
+    [eventId, userId]
+  );
+
+  return result.affectedRows > 0;
+}
