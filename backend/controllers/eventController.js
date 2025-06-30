@@ -1,4 +1,8 @@
-import { createEvent } from "../models/eventModel.js";
+import {
+  createEvent,
+  getEventsByUser,
+  updateEvent,
+} from "../models/eventModel.js";
 
 export async function createEventHandler(req, res) {
   try {
@@ -21,15 +25,39 @@ export async function createEventHandler(req, res) {
   }
 }
 
-export async function listAllEventsByUser(req, res) {
+export async function listEventsHandler(req, res) {
   try {
     const userId = req.user.id;
-    const allEvents = await getAllEventsByUser(userId);
+    const allEvents = await getEventsByUser(userId);
     if (!allEvents) {
       return res.status(404).json({ message: "Event not found" });
     }
     res.status(200).json({ allEvents });
   } catch (err) {
     console.log(err);
+    res.status(500).json({ message: "Error list event" });
+  }
+}
+
+export async function updateEventHandler(req, res) {
+  try {
+    const { title, description, date } = req.body;
+    const userId = req.user.id;
+    const eventId = req.params.id;
+
+    if (!eventId) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const ok = await updateEvent(title, description, date, eventId, userId);
+
+    if (!ok) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.json({ message: "Event updated" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Error update event" });
   }
 }
