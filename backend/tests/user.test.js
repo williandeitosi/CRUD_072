@@ -15,6 +15,15 @@ describe("User flow", () => {
     expect(res.body.message).toMatch(
       "Registered user. Confirm your email to access."
     );
-  }, 10000);
-  console.log(process.env.DB_HOST, process.env.DB_USER, process.env.DB_NAME);
+  });
+
+  it("Should get confirmation token from DB", async () => {
+    const { pool } = await import("../database/conecction.js");
+    const [rows] = await pool.query(
+      `SELECT confirmation_token FROM users WHERE email = ?`,
+      [testEmail]
+    );
+    expect(rows[0]).toHaveProperty("confirmation_token");
+    testConfirmationToken = rows[0].confirmation_token;
+  });
 });
