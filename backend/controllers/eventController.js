@@ -1,5 +1,6 @@
 import {
   createEvent,
+  deleteEvent,
   getEventsByUser,
   updateEvent,
 } from "../models/eventModel.js";
@@ -59,5 +60,26 @@ export async function updateEventHandler(req, res) {
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Error update event" });
+  }
+}
+
+export async function deleteEventHandler(req, res) {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user.id;
+    if (!eventId) {
+      return res.status(400).json({ message: "Event id is required" });
+    }
+
+    const ok = await deleteEvent(eventId, userId);
+
+    if (!ok) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json({ message: "Event deleted" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Error deleting event" });
   }
 }
