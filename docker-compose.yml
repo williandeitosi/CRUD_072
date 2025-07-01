@@ -21,6 +21,7 @@ services:
       - db
     volumes:
       - ./backend:/app
+    command: ["./wait-for-it.sh", "db:3306", "--", "npm", "run", "dev"]
 
 volumes:
   db_data:
