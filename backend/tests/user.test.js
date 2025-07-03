@@ -37,6 +37,14 @@ describe("User flow", () => {
     expect(res.body.message).toMatch("Email and password is required");
   });
 
+  it("should fail registration wrong email and password", async () => {
+    const res = await request(app)
+      .post("/users/register")
+      .send({ email: "email@email.com" });
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error registering user");
+  });
+
   it("Should get confirmation token from DB", async () => {
     const { pool } = await import("../database/conecction.js");
     const [rows] = await pool.query(
@@ -78,7 +86,22 @@ describe("User flow", () => {
     expect(res.body).toHaveProperty("token");
   });
 
-  it("should fail login for nonexistent user", async () => {
+  it("Should login without password", async () => {
+    const res = await request(app).post("/users/login").send({
+      email: testEmail,
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Login error");
+  });
+
+  it("should fail registration without email and password", async () => {
+    const res = await request(app).post("/users/login").send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch("Email and password is required");
+  });
+
+  it("should fail login for not existent user", async () => {
     const res = await request(app).post("/users/login").send({
       email: "noone@notfound.com",
       password: "112233",
@@ -102,9 +125,28 @@ describe("User flow", () => {
 
     const res = await request(app).post("/users/login").send({
       email: testEmail,
-      password: "wrongpass",
+      password: "wrong pass",
     });
     expect(res.statusCode).toBe(401);
-    expect(res.body.message).toMatch(/invalid password/i);
+    expect(res.body.message).toMatch("Invalid password");
+  });
+
+  it("should fail login if user not confirmed", async () => {
+    const testEmail = `unconfirmed${Date.now()}@test.com`;
+
+    await request(app).post("/users/register").send({
+      email: testEmail,
+      password: "112233",
+    });
+
+    const res = await request(app).post("/users/login").send({
+      email: testEmail,
+      password: "112233",
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.message).toMatch(
+      "Please confirm your email before accessing"
+    );
   });
 });
