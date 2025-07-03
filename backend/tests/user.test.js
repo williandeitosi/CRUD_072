@@ -62,6 +62,12 @@ describe("User flow", () => {
     expect(res.body.message).toMatch("Invalid Token!");
   });
 
+  it("should fail account confirmation without token", async () => {
+    const res = await request(app).get("/users/confirm");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch("Token is required");
+  });
+
   it("Should login successfully", async () => {
     const res = await request(app).post("/users/login").send({
       email: testEmail,
@@ -70,5 +76,35 @@ describe("User flow", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("token");
+  });
+
+  it("should fail login for nonexistent user", async () => {
+    const res = await request(app).post("/users/login").send({
+      email: "noone@notfound.com",
+      password: "112233",
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("User not found");
+  });
+
+  it("should fail login with invalid password", async () => {
+    const testEmail = `failpass${Date.now()}@test.com`;
+
+    await request(app).post("/users/register").send({
+      email: testEmail,
+      password: "correctpass",
+    });
+
+    const { pool } = await import("../database/conecction.js");
+    await pool.query(`UPDATE users SET confirmed=1 WHERE email = ?`, [
+      testEmail,
+    ]);
+
+    const res = await request(app).post("/users/login").send({
+      email: testEmail,
+      password: "wrongpass",
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toMatch(/invalid password/i);
   });
 });
