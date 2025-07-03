@@ -16,6 +16,20 @@ describe("User flow", () => {
       "Registered user. Confirm your email to access."
     );
   });
+  it("should fail if email already exists", async () => {
+    await request(app).post("/users/register").send({
+      email: "testduplicate@test.com",
+      password: "112233",
+    });
+
+    const res = await request(app).post("/users/register").send({
+      email: "testduplicate@test.com",
+      password: "112233",
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body.message).toMatch("User already exists!");
+  });
 
   it("should fail registration without email and password", async () => {
     const res = await request(app).post("/users/register").send({});
@@ -40,6 +54,12 @@ describe("User flow", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch("Account confirmed! You can now login.");
+  });
+
+  it("should fail account confirmation with invalid token", async () => {
+    const res = await request(app).get("/users/confirm?token=invalidtoken123");
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("Invalid Token!");
   });
 
   it("Should login successfully", async () => {
