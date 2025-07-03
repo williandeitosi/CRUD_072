@@ -55,7 +55,7 @@ export async function confirmAccount(req, res) {
     if (!ok) {
       return res.status(404).json({ message: "Invalid Token!" });
     }
-    res.json({ message: "Account confirmed! You can now login." });
+    res.status(200).json({ message: "Account confirmed! You can now login." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error confirming account" });
@@ -96,7 +96,7 @@ export async function loginUser(req, res) {
       { expiresIn: "1h" }
     );
 
-    res.json({ token });
+    res.status(200).json({ token });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Login error" });
