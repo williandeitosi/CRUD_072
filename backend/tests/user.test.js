@@ -1,6 +1,7 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import app from "../app.js";
+import { pool } from "../database/conecction.js";
 
 describe("User flow", () => {
   let testEmail = `test${Date.now()}@test.com`;
@@ -40,7 +41,7 @@ describe("User flow", () => {
   it("should fail registration wrong email and password", async () => {
     const res = await request(app)
       .post("/users/register")
-      .send({ email: "email@email.com" });
+      .send({ email: "test@test.com" });
     expect(res.statusCode).toBe(500);
     expect(res.body.message).toMatch("Error registering user");
   });
@@ -111,8 +112,6 @@ describe("User flow", () => {
   });
 
   it("should fail login with invalid password", async () => {
-    const testEmail = `failpass${Date.now()}@test.com`;
-
     await request(app).post("/users/register").send({
       email: testEmail,
       password: "correctpass",
@@ -125,22 +124,21 @@ describe("User flow", () => {
 
     const res = await request(app).post("/users/login").send({
       email: testEmail,
-      password: "wrong pass",
+      password: "wrongpass",
     });
     expect(res.statusCode).toBe(401);
     expect(res.body.message).toMatch("Invalid password");
   });
 
   it("should fail login if user not confirmed", async () => {
-    const testEmail = `unconfirmed${Date.now()}@test.com`;
-
+    const unconfirmedEmail = `unconfirmed${Date.now()}@test.com`;
     await request(app).post("/users/register").send({
-      email: testEmail,
+      email: unconfirmedEmail,
       password: "112233",
     });
 
     const res = await request(app).post("/users/login").send({
-      email: testEmail,
+      email: unconfirmedEmail,
       password: "112233",
     });
 
@@ -148,5 +146,13 @@ describe("User flow", () => {
     expect(res.body.message).toMatch(
       "Please confirm your email before accessing"
     );
+  });
+  afterAll(async () => {
+    await pool.query(
+      `DELETE FROM users
+      WHERE email LIKE 'test%@test.com'
+      OR email LIKE 'unconfirmed%@test.com'`
+    );
+    await pool.end();
   });
 });
