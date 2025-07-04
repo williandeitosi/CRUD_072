@@ -95,4 +95,16 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.message).toMatch("Error list event");
   });
+
+  it("should update an event", async () => {
+    vi.spyOn(eventModel, "updateEvent").mockResolvedValue(true);
+
+    const res = await request(app)
+      .put("/events/1")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "update title" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toMatch("Event updated");
+  });
 });
