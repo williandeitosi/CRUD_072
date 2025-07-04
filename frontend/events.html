@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Events</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>My Events</h1>
+      <button id="logout">Logout</button>
+      <h2>Create Event</h2>
+      <form id="eventForm">
+        <input type="text" name="title" placeholder="Event title" required />
+        <input type="text" name="description" placeholder="Description" />
+        <input type="date" name="date" />
+        <button type="submit">Create</button>
+      </form>
+      <h2>All Events</h2>
+      <ul id="eventsList"></ul>
+      <p id="message"></p>
+    </div>
+
+    <div id="updateModal" class="modal">
+      <div class="modal-content">
+        <h2>Editar Evento</h2>
+        <form id="updateForm">
+          <input type="hidden" id="updateId" />
+          <input type="text" id="updateTitle" placeholder="Título" />
+          <input type="text" id="updateDescription" placeholder="Descrição" />
+          <input type="date" id="updateDate" />
+          <button type="submit">Salvar</button>
+          <button type="button" id="cancelUpdate">Cancelar</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="js/events.js"></script>
+  </body>
+</html>
