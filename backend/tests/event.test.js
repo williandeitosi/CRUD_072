@@ -131,4 +131,15 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.message).toMatch("Error update event");
   });
+
+  it("should delete an event", async () => {
+    vi.spyOn(eventModel, "deleteEvent").mockResolvedValue(true);
+
+    const res = await request(app)
+      .delete("/events/1")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toMatch("Event deleted");
+  });
 });
