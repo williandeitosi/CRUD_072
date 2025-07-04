@@ -42,7 +42,7 @@ export async function listEventsHandler(req, res) {
 
 export async function updateEventHandler(req, res) {
   try {
-    const { title, description, date } = req.body;
+    const fields = req.body;
     const userId = req.user.id;
     const eventId = req.params.id;
 
@@ -50,10 +50,12 @@ export async function updateEventHandler(req, res) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    const ok = await updateEvent(title, description, date, eventId, userId);
+    const ok = await updateEvent(fields, eventId, userId);
 
     if (!ok) {
-      return res.status(404).json({ message: "Event not found" });
+      return res
+        .status(404)
+        .json({ message: "Event not found or nothing to update" });
     }
 
     res.json({ message: "Event updated" });
