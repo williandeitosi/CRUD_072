@@ -1,42 +1,28 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import app from "../app.js";
-import { pool } from "../database/conecction.js";
 import * as eventModel from "../models/eventModel.js";
 
-let authToken;
-beforeAll(async () => {
-  const email = `test${Date.now()}@test.com`;
-  const password = "123456";
+const authToken = "Bearer faketoken";
 
-  await request(app).post("/users/register").send({ email, password });
+vi.mock("../middleware/authMiddleware.js", () => ({
+  authenticateToken: (req, res, next) => {
+    req.user = { id: 1 };
+    next();
+  },
+}));
 
-  const [rows] = await pool.query(
-    "SELECT confirmation_token FROM users WHERE email = ?",
-    [email]
-  );
-  const confirmationToken = rows[0].confirmation_token;
+describe("Event handlers (mocked)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-  await request(app).get(`/users/confirm?token=${confirmationToken}`);
-
-  const res = await request(app).post("/users/login").send({ email, password });
-
-  authToken = res.body.token;
-});
-
-afterAll(async () => {
-  await pool.query(
-    `DELETE FROM users
-      WHERE email LIKE 'test%@test.com'`
-  );
-  await pool.end();
-});
-describe("Event handlers", () => {
   it("should create an event successfully", async () => {
     vi.spyOn(eventModel, "createEvent").mockResolvedValue(123);
+
     const res = await request(app)
       .post("/events")
-      .set("Authorization", `Bearer ${authToken}`)
+      .set("Authorization", authToken)
       .send({
         title: "My Event",
         description: "Test description",
@@ -50,10 +36,26 @@ describe("Event handlers", () => {
   it("should fail to create event without title", async () => {
     const res = await request(app)
       .post("/events")
-      .set(`Authorization`, `Bearer ${authToken}`)
+      .set("Authorization", authToken)
       .send({});
 
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toMatch("Title is required");
+  });
+
+  it("should handle createEventHandler errors", async () => {
+    vi.spyOn(eventModel, "createEvent").mockRejectedValue(new Error("fail"));
+
+    const res = await request(app)
+      .post("/events")
+      .set("Authorization", authToken)
+      .send({
+        title: "fail test",
+        description: "desc",
+        date: "2025-12-31",
+      });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error creating event");
   });
 });
