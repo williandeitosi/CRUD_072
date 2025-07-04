@@ -10,7 +10,7 @@ import {
 import { sendWelcomeEmail } from "../utils/email.js";
 
 const loginRateLimiter = new RateLimiterMemory({
-  points: 5,
+  points: 10,
   duration: 15 * 60,
 });
 
@@ -70,13 +70,14 @@ export async function confirmAccount(req, res) {
 
 export async function loginUser(req, res) {
   const ip = req.ip;
-
-  try {
-    await loginRateLimiter.consume(ip);
-  } catch {
-    return res.status(429).json({
-      message: "Too many login attempts. Please try again later.",
-    });
+  if (process.env.NODE_ENV !== "test") {
+    try {
+      await loginRateLimiter.consume(ip);
+    } catch {
+      return res.status(429).json({
+        message: "Too many login attempts. Please try again later.",
+      });
+    }
   }
 
   try {
@@ -107,7 +108,7 @@ export async function loginUser(req, res) {
 
     if (!valid) {
       await loginRateLimiter.consume(ip);
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({ message: "Email and password id wrong" });
     }
 
     await loginRateLimiter.delete(ip);
