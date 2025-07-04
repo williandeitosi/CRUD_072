@@ -107,4 +107,16 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch("Event updated");
   });
+
+  it("should fail update if event not found", async () => {
+    vi.spyOn(eventModel, "updateEvent").mockResolvedValue(false);
+
+    const res = await request(app)
+      .put("/events/1")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "update title" });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("Event not found");
+  });
 });
