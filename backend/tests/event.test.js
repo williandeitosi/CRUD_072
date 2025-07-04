@@ -82,4 +82,17 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(404);
     expect(res.body.message).toMatch("Event not found");
   });
+
+  it("should handle listEventsHandler errors", async () => {
+    vi.spyOn(eventModel, "getEventsByUser").mockRejectedValue(
+      new Error("fail")
+    );
+
+    const res = await request(app)
+      .get("/events/all")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error list event");
+  });
 });
