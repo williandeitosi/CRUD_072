@@ -19,8 +19,11 @@ services:
       - "3000:3000"
     depends_on:
       - db
+    environment:
+      - NODE_ENV=development
     volumes:
       - ./backend:/app
+      - ./frontend:/frontend
     command: ["./wait-for-it.sh", "db:3306", "--", "npm", "run", "dev"]
 
 volumes:
