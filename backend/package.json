@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "docker compose exec backend npx vitest",
-    "test:coverage": "docker compose exec backend npx vitest --coverage"
+    "test": "docker compose exec -e NODE_ENV=test backend npx vitest",
+    "test:coverage": "docker compose exec -e NODE_ENV=test backend npx vitest --coverage"
   },
   "keywords": [],
   "author": "",
