@@ -44,6 +44,18 @@ describe("User flow (mocked)", () => {
     expect(res.body.message).toMatch("Email and password is required");
   });
 
+  it("should create user errors", async () => {
+    vi.spyOn(userModel, "createUser").mockRejectedValue(new Error("fail"));
+
+    const res = await request(app).post("/users/register").send({
+      email: "test@test.com",
+      password: "123456",
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error registering user");
+  });
+
   it("should confirm account", async () => {
     vi.spyOn(userModel, "confirmUser").mockResolvedValue(true);
 
@@ -64,6 +76,15 @@ describe("User flow (mocked)", () => {
     const res = await request(app).get("/users/confirm?token=invalid");
     expect(res.statusCode).toBe(404);
     expect(res.body.message).toMatch("Invalid Token!");
+  });
+
+  it("shoul confirm account error", async () => {
+    vi.spyOn(userModel, "confirmUser").mockRejectedValue(new Error("fail"));
+
+    const res = await request(app).get("/users/confirm?token=invalid");
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error confirming account");
   });
 
   it("should login successfully", async () => {
@@ -137,5 +158,18 @@ describe("User flow (mocked)", () => {
     const res = await request(app).post("/users/login").send({});
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toMatch("Email and password is required");
+  });
+
+  it("should login error", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockRejectedValue(new Error("fail"));
+    vi.spyOn(bcrypt, "compare").mockResolvedValue(true);
+
+    const res = await request(app).post("/users/login").send({
+      email: "test@test.com",
+      password: "123456",
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Login error");
   });
 });
