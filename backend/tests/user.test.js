@@ -120,7 +120,7 @@ describe("User flow (mocked)", () => {
     });
 
     expect(res.statusCode).toBe(401);
-    expect(res.body.message).toMatch("Invalid password");
+    expect(res.body.message).toMatch("Email and password id wrong");
   });
 
   it("should fail login if not confirmed", async () => {
