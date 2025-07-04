@@ -142,4 +142,15 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch("Event deleted");
   });
+
+  it("should fail delete if not found event", async () => {
+    vi.spyOn(eventModel, "deleteEvent").mockResolvedValue(false);
+
+    const res = await request(app)
+      .delete("/events/1")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("Event not found");
+  });
 });
