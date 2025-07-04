@@ -1,12 +1,18 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 import {
   confirmUser,
   createUser,
   findUserByEmail,
 } from "../models/userModel.js";
 import { sendWelcomeEmail } from "../utils/email.js";
+
+const loginRateLimiter = new RateLimiterMemory({
+  points: 5,
+  duration: 15 * 60,
+});
 
 export async function registerUser(req, res) {
   try {
@@ -63,10 +69,21 @@ export async function confirmAccount(req, res) {
 }
 
 export async function loginUser(req, res) {
+  const ip = req.ip;
+
+  try {
+    await loginRateLimiter.consume(ip);
+  } catch {
+    return res.status(429).json({
+      message: "Too many login attempts. Please try again later.",
+    });
+  }
+
   try {
     const { email, password } = req.body;
 
-    if (!email && !password) {
+    if (!email || !password) {
+      await loginRateLimiter.consume(ip);
       return res
         .status(400)
         .json({ message: "Email and password is required" });
@@ -75,10 +92,12 @@ export async function loginUser(req, res) {
     const user = await findUserByEmail(email);
 
     if (!user) {
+      await loginRateLimiter.consume(ip);
       return res.status(404).json({ message: "User not found" });
     }
 
     if (!user.confirmed) {
+      await loginRateLimiter.consume(ip);
       return res
         .status(403)
         .json({ message: "Please confirm your email before accessing" });
@@ -87,8 +106,11 @@ export async function loginUser(req, res) {
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
+      await loginRateLimiter.consume(ip);
       return res.status(401).json({ message: "Invalid password" });
     }
+
+    await loginRateLimiter.delete(ip);
 
     const token = jwt.sign(
       { id: user.id, email: user.email },
