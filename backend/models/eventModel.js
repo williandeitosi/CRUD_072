@@ -17,12 +17,36 @@ export async function getEventsByUser(userId) {
   return rows;
 }
 
-export async function updateEvent(title, description, date, eventId, userId) {
-  const [result] = await pool.query(
-    `UPDATE events SET title = ?, description = ?, date = ? WHERE id = ? AND user_id = ?`,
-    [title, description, date, eventId, userId]
-  );
+export async function updateEvent(fields, eventId, userId) {
+  const updates = [];
+  const values = [];
 
+  if (fields.title !== undefined) {
+    updates.push("title = ?");
+    values.push(fields.title);
+  }
+  if (fields.description !== undefined) {
+    updates.push("description = ?");
+    values.push(fields.description);
+  }
+  if (fields.date !== undefined) {
+    updates.push("date = ?");
+    values.push(fields.date);
+  }
+
+  if (updates.length === 0) {
+    return false;
+  }
+
+  values.push(eventId, userId);
+
+  const query = `
+    UPDATE events
+    SET ${updates.join(", ")}
+    WHERE id = ? AND user_id = ?
+  `;
+
+  const [result] = await pool.query(query, values);
   return result.affectedRows > 0;
 }
 
