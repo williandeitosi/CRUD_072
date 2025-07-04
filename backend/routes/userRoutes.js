@@ -38,25 +38,6 @@ const router = Router();
  */
 router.post("/register", registerUser);
 
-/**
- * @swagger
- * /users/confirm:
- *   get:
- *     tags:
- *       - users
- *     summary: Confirma cadastro do usuário via token
- *     parameters:
- *       - name: token
- *         in: query
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Conta confirmada
- *       404:
- *         description: Token inválido
- */
 router.get("/confirm", confirmAccount);
 
 /**
