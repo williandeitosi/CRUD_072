@@ -143,6 +143,14 @@ describe("Event handlers (mocked)", () => {
     expect(res.body.message).toMatch("Event deleted");
   });
 
+  it("should fail to delete with missing id param", async () => {
+    const res = await request(app)
+      .delete("/events/")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect([400, 404]).toContain(res.statusCode);
+  });
+
   it("should fail delete if not found event", async () => {
     vi.spyOn(eventModel, "deleteEvent").mockResolvedValue(false);
 
@@ -152,5 +160,16 @@ describe("Event handlers (mocked)", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.body.message).toMatch("Event not found");
+  });
+
+  it("should handle deleteEventHandler errors", async () => {
+    vi.spyOn(eventModel, "deleteEvent").mockRejectedValue(new Error("fail"));
+
+    const res = await request(app)
+      .delete("/events/1")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toMatch("Error deleting event");
   });
 });
