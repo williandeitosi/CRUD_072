@@ -58,4 +58,17 @@ describe("Event handlers (mocked)", () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.message).toMatch("Error creating event");
   });
+
+  it("should list events", async () => {
+    vi.spyOn(eventModel, "getEventsByUser").mockResolvedValue([
+      { id: 1, title: "Test Event" },
+    ]);
+
+    const res = await request(app)
+      .get("/events/all")
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.allEvents).toBeInstanceOf(Array);
+  });
 });
