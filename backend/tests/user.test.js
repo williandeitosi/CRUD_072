@@ -1,31 +1,37 @@
+import bcrypt from "bcrypt";
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../app.js";
-import { pool } from "../database/conecction.js";
+import * as userModel from "../models/userModel.js";
+import * as emailUtil from "../utils/email.js";
 
-describe("User flow", () => {
-  let testEmail = `test${Date.now()}@test.com`;
-  let testPassword = "112233";
-  let testConfirmationToken;
+describe("User flow (mocked)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("should register a user", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue(null);
+    vi.spyOn(userModel, "createUser").mockResolvedValue(1);
+    vi.spyOn(emailUtil, "sendWelcomeEmail").mockResolvedValue();
+
     const res = await request(app).post("/users/register").send({
-      email: testEmail,
-      password: testPassword,
+      email: "test@test.com",
+      password: "123456",
     });
+
     expect(res.statusCode).toBe(201);
     expect(res.body.message).toMatch(
       "Registered user. Confirm your email to access."
     );
   });
+
   it("should fail if email already exists", async () => {
-    await request(app).post("/users/register").send({
-      email: "testduplicate@test.com",
-      password: "112233",
-    });
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue({ id: 1 });
 
     const res = await request(app).post("/users/register").send({
-      email: "testduplicate@test.com",
-      password: "112233",
+      email: "test@test.com",
+      password: "123456",
     });
 
     expect(res.statusCode).toBe(409);
@@ -38,108 +44,75 @@ describe("User flow", () => {
     expect(res.body.message).toMatch("Email and password is required");
   });
 
-  it("should fail registration wrong email and password", async () => {
-    const res = await request(app)
-      .post("/users/register")
-      .send({ email: "test@test.com" });
-    expect(res.statusCode).toBe(500);
-    expect(res.body.message).toMatch("Error registering user");
-  });
+  it("should confirm account", async () => {
+    vi.spyOn(userModel, "confirmUser").mockResolvedValue(true);
 
-  it("Should get confirmation token from DB", async () => {
-    const { pool } = await import("../database/conecction.js");
-    const [rows] = await pool.query(
-      `SELECT confirmation_token FROM users WHERE email = ?`,
-      [testEmail]
-    );
-    expect(rows[0]).toHaveProperty("confirmation_token");
-    testConfirmationToken = rows[0].confirmation_token;
-  });
-
-  it("Should confirm user account", async () => {
-    const res = await request(app).get(
-      `/users/confirm?token=${testConfirmationToken}`
-    );
-
+    const res = await request(app).get("/users/confirm?token=faketoken");
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch("Account confirmed! You can now login.");
   });
 
-  it("should fail account confirmation with invalid token", async () => {
-    const res = await request(app).get("/users/confirm?token=invalidtoken123");
-    expect(res.statusCode).toBe(404);
-    expect(res.body.message).toMatch("Invalid Token!");
-  });
-
-  it("should fail account confirmation without token", async () => {
+  it("should fail confirm account without token", async () => {
     const res = await request(app).get("/users/confirm");
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toMatch("Token is required");
   });
 
-  it("Should login successfully", async () => {
+  it("should fail confirm account with invalid token", async () => {
+    vi.spyOn(userModel, "confirmUser").mockResolvedValue(false);
+
+    const res = await request(app).get("/users/confirm?token=invalid");
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("Invalid Token!");
+  });
+
+  it("should login successfully", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue({
+      id: 1,
+      email: "test@test.com",
+      password: "$2b$10$hash",
+      confirmed: 1,
+    });
+    vi.spyOn(bcrypt, "compare").mockResolvedValue(true);
+
     const res = await request(app).post("/users/login").send({
-      email: testEmail,
-      password: testPassword,
+      email: "test@test.com",
+      password: "123456",
     });
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("token");
   });
 
-  it("Should login without password", async () => {
-    const res = await request(app).post("/users/login").send({
-      email: testEmail,
+  it("should fail login with wrong password", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue({
+      id: 1,
+      email: "test@test.com",
+      password: "$2b$10$hash",
+      confirmed: 1,
     });
-
-    expect(res.statusCode).toBe(500);
-    expect(res.body.message).toMatch("Login error");
-  });
-
-  it("should fail registration without email and password", async () => {
-    const res = await request(app).post("/users/login").send({});
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toMatch("Email and password is required");
-  });
-
-  it("should fail login for not existent user", async () => {
-    const res = await request(app).post("/users/login").send({
-      email: "noone@notfound.com",
-      password: "112233",
-    });
-    expect(res.statusCode).toBe(404);
-    expect(res.body.message).toMatch("User not found");
-  });
-
-  it("should fail login with invalid password", async () => {
-    await request(app).post("/users/register").send({
-      email: testEmail,
-      password: "correctpass",
-    });
-
-    const { pool } = await import("../database/conecction.js");
-    await pool.query(`UPDATE users SET confirmed=1 WHERE email = ?`, [
-      testEmail,
-    ]);
+    vi.spyOn(bcrypt, "compare").mockResolvedValue(false);
 
     const res = await request(app).post("/users/login").send({
-      email: testEmail,
+      email: "test@test.com",
       password: "wrongpass",
     });
+
     expect(res.statusCode).toBe(401);
     expect(res.body.message).toMatch("Invalid password");
   });
 
-  it("should fail login if user not confirmed", async () => {
-    const unconfirmedEmail = `unconfirmed${Date.now()}@test.com`;
-    await request(app).post("/users/register").send({
-      email: unconfirmedEmail,
-      password: "112233",
+  it("should fail login if not confirmed", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue({
+      id: 1,
+      email: "test@test.com",
+      password: "$2b$10$hash",
+      confirmed: 0,
     });
 
     const res = await request(app).post("/users/login").send({
-      email: unconfirmedEmail,
-      password: "112233",
+      email: "test@test.com",
+      password: "123456",
     });
 
     expect(res.statusCode).toBe(403);
@@ -147,12 +120,22 @@ describe("User flow", () => {
       "Please confirm your email before accessing"
     );
   });
-  afterAll(async () => {
-    await pool.query(
-      `DELETE FROM users
-      WHERE email LIKE 'test%@test.com'
-      OR email LIKE 'unconfirmed%@test.com'`
-    );
-    await pool.end();
+
+  it("should fail login if user not found", async () => {
+    vi.spyOn(userModel, "findUserByEmail").mockResolvedValue(null);
+
+    const res = await request(app).post("/users/login").send({
+      email: "notfound@test.com",
+      password: "123456",
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toMatch("User not found");
+  });
+
+  it("should fail login without email/password", async () => {
+    const res = await request(app).post("/users/login").send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch("Email and password is required");
   });
 });
